@@ -1,4 +1,5 @@
-import firebaseConfig from "../../firebase-applet-config.json";
+import fs from "fs";
+import path from "path";
 import {
   getDb,
   saveDb,
@@ -13,8 +14,33 @@ import {
   User,
 } from "./store";
 
-const PROJECT_ID = firebaseConfig.projectId;
-const DATABASE_ID = (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId || "(default)";
+function loadFirebaseIds(): { projectId: string; firestoreDatabaseId: string } {
+  const candidates = [
+    path.resolve(process.cwd(), "firebase-applet-config.json"),
+    path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../firebase-applet-config.json"),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        const parsed = JSON.parse(fs.readFileSync(p, "utf-8"));
+        if (parsed?.projectId) {
+          return {
+            projectId: parsed.projectId,
+            firestoreDatabaseId: parsed.firestoreDatabaseId || "(default)",
+          };
+        }
+      }
+    } catch {
+      // Fallback below
+    }
+  }
+  return {
+    projectId: "camesawesome",
+    firestoreDatabaseId: "ai-studio-camesacademic-a9ffb683-705a-4d5b-8222-164d43bf634d",
+  };
+}
+
+const { projectId: PROJECT_ID, firestoreDatabaseId: DATABASE_ID } = loadFirebaseIds();
 const DOCS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents`;
 
 type FsValue =

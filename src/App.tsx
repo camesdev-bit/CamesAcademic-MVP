@@ -123,52 +123,86 @@ function AppContent() {
   // Route-specific data loaders
   useEffect(() => {
     let active = true;
+    setError("");
 
     if (pathname === "/dashboard") {
       setLoading(true);
       apiFetch("/api/dashboard")
-        .then((res) => res.json())
+        .then(async (res) => {
+          const text = await res.text();
+          let data: any = null;
+          try {
+            data = JSON.parse(text);
+          } catch {}
+          if (!res.ok || !data || data.error) {
+            throw new Error(data?.error || `Server error (${res.status})`);
+          }
+          return data;
+        })
         .then((data) => {
           if (active) {
             setDashboardData(data);
-            setUser(data.user);
+            if (data.user) setUser(data.user);
             setLoading(false);
           }
         })
-        .catch(() => {
-          if (active) setLoading(false);
+        .catch((err) => {
+          if (active) {
+            setError(err instanceof Error ? err.message : "Gagal memuat dashboard");
+            setLoading(false);
+          }
         });
     } else if (pathname === "/materi") {
       setLoading(true);
       apiFetch("/api/materials")
-        .then((res) => res.json())
+        .then(async (res) => {
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !Array.isArray(data)) {
+            throw new Error(data?.error || `Gagal memuat materi (${res.status})`);
+          }
+          return data;
+        })
         .then((data) => {
           if (active) {
             setMaterialsList(data);
             setLoading(false);
           }
         })
-        .catch(() => {
-          if (active) setLoading(false);
+        .catch((err) => {
+          if (active) {
+            setError(err instanceof Error ? err.message : "Gagal memuat materi");
+            setLoading(false);
+          }
         });
     } else if (pathname === "/progress") {
       setLoading(true);
       apiFetch("/api/progress")
-        .then((res) => res.json())
+        .then(async (res) => {
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.error) {
+            throw new Error(data?.error || `Gagal memuat progres (${res.status})`);
+          }
+          return data;
+        })
         .then((data) => {
           if (active) {
             setProgressData(data);
-            setUser({
-              name: user.name,
-              xp: data.user.xp,
-              level: data.user.level,
-              streak: data.user.streak,
-            });
+            if (data.user) {
+              setUser((prev) => ({
+                name: prev.name,
+                xp: data.user.xp,
+                level: data.user.level,
+                streak: data.user.streak,
+              }));
+            }
             setLoading(false);
           }
         })
-        .catch(() => {
-          if (active) setLoading(false);
+        .catch((err) => {
+          if (active) {
+            setError(err instanceof Error ? err.message : "Gagal memuat progres");
+            setLoading(false);
+          }
         });
     } else if (pathname.startsWith("/materi/") && !pathname.endsWith("/proses")) {
       const id = pathname.replace("/materi/", "");
@@ -238,7 +272,7 @@ function AppContent() {
           <DashboardView data={dashboardData} />
         )}
 
-        {pathname === "/dashboard" && !dashboardData && !loading && (
+        {pathname === "/dashboard" && !dashboardData && loading && (
           <div className="flex flex-col items-center justify-center py-24 space-y-3">
             <span className="spinner text-brand h-8 w-8" />
             <p className="text-sm font-bold text-slate-500">Menyiapkan dashboard...</p>
@@ -283,7 +317,7 @@ function AppContent() {
             </div>
           )}
 
-        {loading && (
+        {loading && pathname !== "/dashboard" && (
           <div className="flex flex-col items-center justify-center py-24 space-y-3">
             <span className="spinner text-brand h-8 w-8" />
             <p className="text-sm font-bold text-slate-500">Memuat materi...</p>
@@ -291,15 +325,25 @@ function AppContent() {
         )}
 
         {error && !loading && (
-          <div className="card p-6 border-red-200 text-center space-y-3">
-            <p className="font-extrabold text-red-600">Error</p>
+          <div className="card mx-auto max-w-md border-red-200 p-6 text-center space-y-3">
+            <p className="font-extrabold text-red-600">Gagal memuat data</p>
             <p className="text-sm text-slate-600">{error}</p>
-            <button
-              onClick={() => router.push("/materi")}
-              className="btn btn-primary"
-            >
-              Kembali ke Materi
-            </button>
+            <div className="flex justify-center gap-2 pt-1">
+              <button
+                onClick={() => window.location.reload()}
+                className="btn btn-primary"
+              >
+                Coba Lagi
+              </button>
+              {pathname !== "/materi" && (
+                <button
+                  onClick={() => router.push("/materi")}
+                  className="btn btn-ghost"
+                >
+                  Buka Materi
+                </button>
+              )}
+            </div>
           </div>
         )}
 
