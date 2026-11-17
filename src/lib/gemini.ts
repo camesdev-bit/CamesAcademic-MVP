@@ -40,7 +40,7 @@ function collectGeminiKeys(): GeminiKeyEntry[] {
   const entries: GeminiKeyEntry[] = [];
 
   const push = (val: string | undefined, label: string) => {
-    const trimmed = val?.trim();
+    const trimmed = val?.trim().replace(/^['"]+|['"]+$/g, "").trim();
     if (trimmed && !trimmed.startsWith("MY_") && !seen.has(trimmed)) {
       seen.add(trimmed);
       entries.push({ apiKey: trimmed, label });
@@ -54,6 +54,14 @@ function collectGeminiKeys(): GeminiKeyEntry[] {
     push(process.env[`api_${i}`], `api_${i}`);
   }
   push(process.env.GEMINI_API_KEY, "GEMINI_API_KEY");
+  push(process.env.GOOGLE_API_KEY, "GOOGLE_API_KEY");
+
+  for (const [rawName, val] of Object.entries(process.env)) {
+    const name = rawName.trim();
+    if (/^(?:g_api|gemini_key|api)_\d+$/i.test(name)) {
+      push(val, name);
+    }
+  }
 
   return entries;
 }
@@ -160,8 +168,11 @@ async function callGemini(
 export async function geminiGenerate(opts: GeminiOpts): Promise<string> {
   const queue = buildKeyQueue();
   if (queue.length === 0) {
+    const vercelHint = process.env.VERCEL
+      ? " Jika baru menambahkannya di Vercel, lakukan Redeploy dan pastikan scope Production (dan Preview) tercentang."
+      : "";
     throw new Error(
-      "Belum ada API key Gemini. Tambahkan G_API_1 sampai G_API_20 (contoh: G_API_1, G_API_2, G_API_3)."
+      `Belum ada API key Gemini. Tambahkan G_API_1 sampai G_API_20 (contoh: G_API_1, G_API_2, G_API_3).${vercelHint}`
     );
   }
 
