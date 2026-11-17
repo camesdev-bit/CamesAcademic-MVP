@@ -15,12 +15,31 @@ import {
   doc,
   getDocFromServer,
 } from "firebase/firestore";
+import { getAnalytics, isSupported as isAnalyticsSupported, type Analytics } from "firebase/analytics";
 import firebaseConfig from "../../firebase-applet-config.json";
 
-export const app = initializeApp(firebaseConfig);
+const runtimeFirebaseConfig = {
+  ...firebaseConfig,
+  measurementId: firebaseConfig.measurementId || "G-C9H5LM84RL",
+};
+
+export const app = initializeApp(runtimeFirebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId); /* CRITICAL: The app will break without this line */
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export let analytics: Analytics | null = null;
+
+if (typeof window !== "undefined") {
+  isAnalyticsSupported()
+    .then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    })
+    .catch(() => {
+      // Analytics unavailable in restricted browser contexts
+    });
+}
 
 export enum OperationType {
   CREATE = "create",

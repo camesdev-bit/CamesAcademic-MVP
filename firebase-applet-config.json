@@ -1,12 +1,12 @@
 {
-  "projectId": "gen-lang-client-0652714991",
-  "appId": "1:639685751517:web:92702b7ffefe5fe2062134",
-  "apiKey": "AIzaSyDYoH68RMp6fPYYwzWDtgE53Pe9ikKZIKo",
-  "authDomain": "gen-lang-client-0652714991.firebaseapp.com",
+  "projectId": "camesawesome",
+  "appId": "1:489910480277:web:7221822ad1f29cb64dda9c",
+  "apiKey": "AIzaSyBv60tfmIYyyyIOZJwu_NDhkTsMxA5CToI",
+  "authDomain": "camesawesome.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-camesacademic-a9ffb683-705a-4d5b-8222-164d43bf634d",
-  "storageBucket": "gen-lang-client-0652714991.firebasestorage.app",
-  "messagingSenderId": "639685751517",
+  "storageBucket": "camesawesome.firebasestorage.app",
+  "messagingSenderId": "489910480277",
   "measurementId": "",
-  "oAuthClientId": "639685751517-kubp451a5tekhcba587hkj7nhmvnl4gf.apps.googleusercontent.com",
+  "oAuthClientId": "489910480277-4pu61ni4aqjg26f8851cid4lj6o3juv0.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }
