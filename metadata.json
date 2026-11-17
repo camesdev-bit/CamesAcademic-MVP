@@ -1,0 +1,6 @@
+{
+  "name": "CamesAcademic",
+  "description": "AI Learning Platform — ubah materi belajar menjadi ringkasan cerdas, flashcard interaktif, kuis adaptif 3 tingkat, dan tutor AI 24/7.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

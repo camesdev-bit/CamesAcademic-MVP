@@ -1,0 +1,168 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with study statistics and streak",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 160 },
+        "name": { "type": "string", "maxLength": 120 },
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "streak": { "type": "number" },
+        "lastActiveAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "name", "xp", "level", "streak", "createdAt"]
+    },
+    "Material": {
+      "title": "Study Material",
+      "description": "Study material uploaded by the student",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 180 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "sourceType": { "type": "string", "maxLength": 32 },
+        "sourceName": { "type": "string", "maxLength": 180 },
+        "rawText": { "type": "string", "maxLength": 80000 },
+        "status": { "type": "string", "maxLength": 32 },
+        "step": { "type": "string", "maxLength": 32 },
+        "error": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "title", "status", "rawText", "createdAt"]
+    },
+    "Summary": {
+      "title": "Material Summary",
+      "description": "Generated AI INTI summary of the material",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "content": { "type": "string", "maxLength": 40000 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "materialId", "userId", "content"]
+    },
+    "Flashcard": {
+      "title": "Flashcard",
+      "description": "Interactive study flashcard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "conceptId": { "type": "string", "maxLength": 128 },
+        "front": { "type": "string", "maxLength": 500 },
+        "back": { "type": "string", "maxLength": 1000 },
+        "mastered": { "type": "boolean" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "materialId", "userId", "front", "back", "mastered"]
+    },
+    "Question": {
+      "title": "Quiz Question",
+      "description": "Adaptive multiple choice question",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "conceptId": { "type": "string", "maxLength": 128 },
+        "difficulty": { "type": "number" },
+        "question": { "type": "string", "maxLength": 800 },
+        "options": { "type": "array" },
+        "answerIndex": { "type": "number" },
+        "explanation": { "type": "string", "maxLength": 1200 },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "materialId", "userId", "difficulty", "question", "options", "answerIndex", "explanation"]
+    },
+    "ConceptMastery": {
+      "title": "Concept Mastery",
+      "description": "Student score and accuracy for a specific concept",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "conceptId": { "type": "string", "maxLength": 128 },
+        "conceptName": { "type": "string", "maxLength": 120 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "correct": { "type": "number" },
+        "wrong": { "type": "number" },
+        "score": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "conceptId", "correct", "wrong", "score"]
+    },
+    "Answer": {
+      "title": "Quiz Answer Log",
+      "description": "Record of a submitted quiz answer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "questionId": { "type": "string", "maxLength": 128 },
+        "selected": { "type": "number" },
+        "correct": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "materialId", "questionId", "selected", "correct", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "AI Tutor Chat",
+      "description": "Chat log between student and AI Tutor",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "maxLength": 32 },
+        "content": { "type": "string", "maxLength": 4000 },
+        "level": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "materialId", "role", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile with study statistics"
+    },
+    "/materials/{materialId}": {
+      "schema": "Material",
+      "description": "User uploaded study materials"
+    },
+    "/summaries/{summaryId}": {
+      "schema": "Summary",
+      "description": "Generated AI summary"
+    },
+    "/flashcards/{flashcardId}": {
+      "schema": "Flashcard",
+      "description": "Flashcard study items"
+    },
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Quiz questions"
+    },
+    "/conceptMastery/{masteryId}": {
+      "schema": "ConceptMastery",
+      "description": "Concept mastery tracker"
+    },
+    "/answers/{answerId}": {
+      "schema": "Answer",
+      "description": "Submitted quiz answers"
+    },
+    "/chats/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "AI Tutor chat history"
+    }
+  }
+}
