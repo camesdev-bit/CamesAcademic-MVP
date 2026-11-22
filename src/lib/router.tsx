@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-interface RouterContextType {
-  pathname: string;
+interface RouterActions {
   push: (url: string) => void;
   replace: (url: string) => void;
   refresh: () => void;
@@ -9,13 +8,24 @@ interface RouterContextType {
   forward: () => void;
 }
 
+interface RouterContextType extends RouterActions {
+  pathname: string;
+  actions: RouterActions;
+}
+
+const noop = () => {};
+const defaultActions: RouterActions = {
+  push: noop,
+  replace: noop,
+  refresh: noop,
+  back: noop,
+  forward: noop,
+};
+
 const RouterContext = createContext<RouterContextType>({
   pathname: typeof window !== "undefined" ? window.location.pathname || "/" : "/",
-  push: () => {},
-  replace: () => {},
-  refresh: () => {},
-  back: () => {},
-  forward: () => {},
+  ...defaultActions,
+  actions: defaultActions,
 });
 
 export function RouterProvider({ children }: { children: React.ReactNode }) {
@@ -31,7 +41,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const push = (url: string) => {
+  const push = useCallback((url: string) => {
     if (url.startsWith("#")) {
       try {
         window.location.hash = url;
@@ -54,9 +64,9 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     try {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {}
-  };
+  }, []);
 
-  const replace = (url: string) => {
+  const replace = useCallback((url: string) => {
     if (url.startsWith("http://") || url.startsWith("https://")) {
       try {
         window.location.replace(url);
@@ -70,19 +80,29 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       // Ignored in sandboxed iframe
     }
     setPathname(targetPath);
-  };
+  }, []);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     try {
       window.dispatchEvent(new CustomEvent("app:refresh"));
     } catch {}
-  };
+  }, []);
 
-  const back = () => window.history.back();
-  const forward = () => window.history.forward();
+  const back = useCallback(() => window.history.back(), []);
+  const forward = useCallback(() => window.history.forward(), []);
+
+  const actions = useMemo<RouterActions>(
+    () => ({ push, replace, refresh, back, forward }),
+    [push, replace, refresh, back, forward]
+  );
+
+  const contextValue = useMemo<RouterContextType>(
+    () => ({ pathname, ...actions, actions }),
+    [pathname, actions]
+  );
 
   return (
-    <RouterContext.Provider value={{ pathname, push, replace, refresh, back, forward }}>
+    <RouterContext.Provider value={contextValue}>
       {children}
     </RouterContext.Provider>
   );
@@ -90,13 +110,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
 export function useRouter() {
   const ctx = useContext(RouterContext);
-  return {
-    push: ctx.push,
-    replace: ctx.replace,
-    refresh: ctx.refresh,
-    back: ctx.back,
-    forward: ctx.forward,
-  };
+  return ctx.actions;
 }
 
 export function usePathname() {

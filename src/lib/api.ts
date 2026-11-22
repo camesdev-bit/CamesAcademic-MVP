@@ -1,8 +1,21 @@
 import { auth } from "./firebase";
 import { safeStorage } from "./storage";
 
+async function waitForAuthReady() {
+  if (typeof auth.authStateReady !== "function") return;
+  try {
+    await Promise.race([
+      auth.authStateReady(),
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ]);
+  } catch {
+    // Proceed cleanly even if auth initialization fails
+  }
+}
+
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   try {
+    await waitForAuthReady();
     const headers = new Headers(init?.headers);
     const currentUser = auth.currentUser;
     if (!headers.has("x-user-id")) {

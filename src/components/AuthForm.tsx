@@ -59,18 +59,23 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
     setError("");
     setBusy(true);
     try {
-      const res = await signInAnonymously(auth);
-      const user = res.user;
+      let guestUid = "usr-guest";
+      try {
+        const res = await signInAnonymously(auth);
+        guestUid = res.user.uid;
+      } catch {
+        // Fallback to local guest session if Anonymous Auth is not enabled in Firebase Console
+      }
 
-      safeStorage.setItem("cames_user_id", user.uid);
+      safeStorage.setItem("cames_user_id", guestUid);
       safeStorage.setItem("cames_user_name", "Pelajar Tamu");
 
       await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: user.uid,
-          email: `tamu_${user.uid.slice(0, 5)}@cames.my.id`,
+          userId: guestUid,
+          email: `tamu_${guestUid.slice(0, 5)}@cames.my.id`,
           name: "Pelajar Tamu",
         }),
       });

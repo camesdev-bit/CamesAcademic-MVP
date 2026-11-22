@@ -247,7 +247,20 @@ export function createApiApp() {
         saveDb();
         await flushFirestore(req, user.id);
 
-        res.json({ id: newId, status: "EXTRACTING" });
+        res.json({
+          id: newId,
+          status: "EXTRACTING",
+          seed:
+            newMaterial.rawText.length <= 120_000
+              ? {
+                  title: newMaterial.title,
+                  subject: newMaterial.subject,
+                  sourceType: newMaterial.sourceType,
+                  sourceName: newMaterial.sourceName,
+                  rawText: newMaterial.rawText,
+                }
+              : undefined,
+        });
       } catch (err: any) {
         res.status(500).json({ error: err.message || "Gagal membuat materi" });
       }
@@ -334,10 +347,80 @@ export function createApiApp() {
     });
   });
 
+  const buildMaterialSnapshot = (materialId: string) => {
+    const db = getDb();
+    const mat = db.materials.find((x) => x.id === materialId);
+    if (!mat) return undefined;
+    return {
+      material: mat,
+      topics: db.topics.filter((t) => t.materialId === materialId),
+      summary: db.summaries.find((s) => s.materialId === materialId) || null,
+      cards: db.flashcards.filter((f) => f.materialId === materialId),
+      questions: db.questions.filter((q) => q.materialId === materialId),
+    };
+  };
+
+  const restoreMaterialSnapshot = (materialId: string, snap: any, userId: string) => {
+    if (!snap?.material || typeof snap.material.rawText !== "string") return null;
+    const db = getDb();
+    let mat = db.materials.find((x) => x.id === materialId);
+    if (!mat) {
+      mat = { ...snap.material, id: materialId, userId };
+      db.materials.push(mat!);
+    }
+    if (Array.isArray(snap.topics) && db.topics.filter((t) => t.materialId === materialId).length === 0) {
+      for (const t of snap.topics) db.topics.push(t);
+    }
+    if (snap.summary && !db.summaries.find((s) => s.materialId === materialId)) {
+      db.summaries.push(snap.summary);
+    }
+    if (Array.isArray(snap.cards) && db.flashcards.filter((f) => f.materialId === materialId).length === 0) {
+      for (const f of snap.cards) db.flashcards.push(f);
+    }
+    if (Array.isArray(snap.questions) && db.questions.filter((q) => q.materialId === materialId).length === 0) {
+      for (const q of snap.questions) db.questions.push(q);
+    }
+    saveDb();
+    return mat;
+  };
+
+  app.post("/api/materials/:id/restore", (req: Request, res: Response) => {
+    const user = getCurrentUser(getReqUserId(req));
+    const mat = restoreMaterialSnapshot(req.params.id, req.body?.snapshot, user.id);
+    if (!mat) return res.status(400).json({ error: "Snapshot materi tidak valid" });
+    return res.json({ ok: true, id: mat.id });
+  });
+
   app.post("/api/materials/:id/step", async (req: Request, res: Response) => {
     const db = getDb();
     const user = getCurrentUser(getReqUserId(req));
-    const m = db.materials.find((x) => x.id === req.params.id);
+    let m = db.materials.find((x) => x.id === req.params.id);
+
+    if (!m && req.body?.snapshot) {
+      m = restoreMaterialSnapshot(req.params.id, req.body.snapshot, user.id) || undefined;
+    } else if (m && req.body?.snapshot) {
+      restoreMaterialSnapshot(req.params.id, req.body.snapshot, user.id);
+    }
+
+    if (!m && req.body?.seed && typeof req.body.seed.rawText === "string" && req.body.seed.rawText.trim().length >= 15) {
+      const s = req.body.seed;
+      m = {
+        id: req.params.id,
+        userId: user.id,
+        title: String(s.title || "Materi Pembelajaran").slice(0, 120),
+        subject: String(s.subject || "Pelajaran Umum").slice(0, 100),
+        sourceType: String(s.sourceType || "text").slice(0, 32),
+        sourceName: s.sourceName ? String(s.sourceName).slice(0, 180) : null,
+        rawText: String(s.rawText),
+        status: "EXTRACTING",
+        step: null,
+        error: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.materials.push(m);
+      saveDb();
+    }
 
     if (!m) return res.status(404).json({ error: "Materi tidak ditemukan" });
 
@@ -347,6 +430,7 @@ export function createApiApp() {
         step: null,
         label: "Materi siap dipelajari!",
         error: null,
+        snapshot: buildMaterialSnapshot(m.id),
       });
     }
 
@@ -389,6 +473,7 @@ export function createApiApp() {
           step: "serap",
           label: "AI memahami materi (AI SERAP)...",
           error: null,
+          snapshot: buildMaterialSnapshot(m.id),
         });
       }
 
@@ -427,6 +512,7 @@ export function createApiApp() {
           step: "ringkasan",
           label: "Menyusun ringkasan (AI INTI)...",
           error: null,
+          snapshot: buildMaterialSnapshot(m.id),
         });
       }
 
@@ -461,6 +547,7 @@ export function createApiApp() {
           step: "flashcard",
           label: "Membuat flashcard interaktif...",
           error: null,
+          snapshot: buildMaterialSnapshot(m.id),
         });
       }
 
@@ -501,6 +588,7 @@ export function createApiApp() {
           step: null,
           label: "Materi siap dipelajari!",
           error: null,
+          snapshot: buildMaterialSnapshot(m.id),
         });
       }
 
@@ -513,6 +601,7 @@ export function createApiApp() {
         step: null,
         label: "Materi siap dipelajari!",
         error: null,
+        snapshot: buildMaterialSnapshot(m.id),
       });
     } catch (err: any) {
       m.status = "FAILED";

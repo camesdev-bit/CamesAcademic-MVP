@@ -81,8 +81,8 @@ const SUBJECTS = [
 
 const FAQS = [
   {
-    q: "Apa itu CamesAcademic?",
-    a: "CamesAcademic adalah platform belajar berbasis AI. Kamu upload materi, lalu AI menyusunnya menjadi ringkasan, flashcard, kuis, dan tutor yang bisa ditanya kapan saja — semuanya dalam satu tempat.",
+    q: "Apa itu CamesAcademic (Cames Academic)?",
+    a: "CamesAcademic — sering juga disebut Cames Academic — adalah platform belajar berbasis AI dari ekosistem Cames. Kamu upload materi, lalu AI menyusunnya menjadi ringkasan, flashcard, kuis, dan tutor yang bisa ditanya kapan saja dalam satu tempat.",
   },
   {
     q: "Format file apa saja yang didukung?",
@@ -631,8 +631,8 @@ export default function Landing({
           <div>
             <Logo tone="light" />
             <p className="mt-3.5 max-w-xs text-sm leading-relaxed text-slate-400">
-              Platform belajar AI untuk pelajar Indonesia. Pahami materi, latihan soal, dan pantau progress
-              belajarmu.
+              CamesAcademic (Cames Academic) — platform belajar AI dari Cames untuk pelajar Indonesia. Pahami
+              materi, latihan soal, dan pantau progress belajarmu.
             </p>
             <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs font-bold text-sky-200 ring-1 ring-inset ring-white/10">
               <ShieldIcon className="h-4 w-4" /> Academic.cames.my.id

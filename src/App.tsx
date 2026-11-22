@@ -120,6 +120,31 @@ function AppContent() {
     return () => window.removeEventListener("app:refresh", handleRefresh);
   }, []);
 
+  // Keep page title, canonical URL, and og:url synced per route for SEO
+  useEffect(() => {
+    const routeTitles: Record<string, string> = {
+      "/": "CamesAcademic (Cames Academic) — AI Learning Platform",
+      "/dashboard": "Dashboard Belajar — CamesAcademic (Cames Academic)",
+      "/materi": "Perpustakaan Materi — CamesAcademic (Cames Academic)",
+      "/progress": "Progress & Penguasaan — CamesAcademic (Cames Academic)",
+      "/login": "Masuk — CamesAcademic (Cames Academic)",
+      "/register": "Daftar Gratis — CamesAcademic (Cames Academic)",
+    };
+
+    const nextTitle =
+      routeTitles[pathname] ||
+      (pathname.startsWith("/materi/")
+        ? "Ruang Belajar Materi — CamesAcademic (Cames Academic)"
+        : "CamesAcademic (Cames Academic) — AI Learning Platform");
+    document.title = nextTitle;
+
+    const currentUrl = `${window.location.origin}${pathname === "/" ? "/" : pathname}`;
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.setAttribute("href", currentUrl);
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.setAttribute("content", currentUrl);
+  }, [pathname]);
+
   // Route-specific data loaders
   useEffect(() => {
     let active = true;
@@ -207,11 +232,26 @@ function AppContent() {
     } else if (pathname.startsWith("/materi/") && !pathname.endsWith("/proses")) {
       const id = pathname.replace("/materi/", "");
       setLoading(true);
-      apiFetch(`/api/materials/${id}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Materi tidak ditemukan");
-          return res.json();
-        })
+      (async () => {
+        let res = await apiFetch(`/api/materials/${id}`);
+        if (res.status === 404) {
+          try {
+            const rawSnap = window.sessionStorage.getItem(`cames_mat_snapshot_${id}`);
+            if (rawSnap) {
+              const r = await apiFetch(`/api/materials/${id}/restore`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ snapshot: JSON.parse(rawSnap) }),
+              });
+              if (r.ok) {
+                res = await apiFetch(`/api/materials/${id}`);
+              }
+            }
+          } catch {}
+        }
+        if (!res.ok) throw new Error("Materi tidak ditemukan");
+        return res.json();
+      })()
         .then((data) => {
           if (active) {
             setActiveMaterial(data);

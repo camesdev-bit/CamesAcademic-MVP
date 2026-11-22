@@ -50,7 +50,9 @@ export default function ProcessingClient({
   initialStatus: string;
 }) {
   const router = useRouter();
-  const runningRef = useRef(false);
+  const routerRef = useRef(router);
+  routerRef.current = router;
+  const runIdRef = useRef(0);
   const [state, setState] = useState<StepState>({
     status: initialStatus,
     step: null,
@@ -63,22 +65,61 @@ export default function ProcessingClient({
 
   useEffect(() => {
     if (initialStatus === "READY") {
-      router.replace(`/materi/${id}`);
+      routerRef.current.replace(`/materi/${id}`);
       return;
     }
     let cancelled = false;
+    const runId = ++runIdRef.current;
+    const isStale = () => cancelled || runIdRef.current !== runId;
+
+    let cachedSeed: unknown = null;
+    let cachedSnapshot: unknown = null;
+    try {
+      const rawSeed = window.sessionStorage.getItem(`cames_mat_seed_${id}`);
+      if (rawSeed) cachedSeed = JSON.parse(rawSeed);
+      const rawSnap = window.sessionStorage.getItem(`cames_mat_snapshot_${id}`);
+      if (rawSnap) cachedSnapshot = JSON.parse(rawSnap);
+    } catch {
+      // Ignore storage access errors
+    }
 
     async function run() {
-      if (runningRef.current) return;
-      runningRef.current = true;
       let failures = 0;
 
-      while (!cancelled && !doneRef.current) {
+      while (!isStale() && !doneRef.current) {
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), 55_000);
         try {
-          const res = await apiFetch(`/api/materials/${id}/step`, { method: "POST" });
-          const data = (await res.json().catch(() => ({}))) as StepState & { error?: string };
-          if (!res.ok) throw new Error(data.error || "Gagal memproses materi");
-          if (cancelled) break;
+          const payload: Record<string, unknown> = {};
+          if (cachedSeed) payload.seed = cachedSeed;
+          if (cachedSnapshot) payload.snapshot = cachedSnapshot;
+          const hasPayload = Object.keys(payload).length > 0;
+
+          const res = await apiFetch(`/api/materials/${id}/step`, {
+            method: "POST",
+            headers: hasPayload ? { "Content-Type": "application/json" } : undefined,
+            body: hasPayload ? JSON.stringify(payload) : undefined,
+            signal: controller.signal,
+          });
+          window.clearTimeout(timer);
+
+          const data = (await res.json().catch(() => ({}))) as StepState & {
+            error?: string;
+            snapshot?: unknown;
+          };
+          if (!res.ok) throw new Error(data.error || `Gagal memproses materi (${res.status})`);
+          if (isStale()) break;
+
+          if (data.snapshot) {
+            cachedSnapshot = data.snapshot;
+            try {
+              window.sessionStorage.setItem(
+                `cames_mat_snapshot_${id}`,
+                JSON.stringify(data.snapshot)
+              );
+            } catch {}
+          }
+
           setState({
             status: data.status,
             step: data.step,
@@ -86,20 +127,31 @@ export default function ProcessingClient({
             error: data.error ?? null,
           });
           failures = 0;
+
           if (data.status === "READY") {
             doneRef.current = true;
-            await sleep(900);
-            if (!cancelled) router.replace(`/materi/${id}`);
+            try {
+              window.sessionStorage.removeItem(`cames_mat_seed_${id}`);
+            } catch {}
+            await sleep(700);
+            if (!isStale()) routerRef.current.replace(`/materi/${id}`);
             break;
           }
           if (data.status === "FAILED") {
             setFatal(data.error || "Proses AI gagal");
             break;
           }
-          await sleep(400);
+          await sleep(300);
         } catch (e) {
+          window.clearTimeout(timer);
+          if (isStale()) break;
           failures++;
-          const msg = e instanceof Error ? e.message : "Koneksi terputus";
+          const isTimeout = e instanceof DOMException && e.name === "AbortError";
+          const msg = isTimeout
+            ? "Waktu proses server habis. Tekan Coba Lagi untuk melanjutkan dari langkah terakhir."
+            : e instanceof Error
+              ? e.message
+              : "Koneksi terputus";
           if (failures >= 3) {
             setFatal(msg);
             break;
@@ -107,19 +159,19 @@ export default function ProcessingClient({
           await sleep(1500);
         }
       }
-      runningRef.current = false;
     }
 
     run();
     return () => {
       cancelled = true;
     };
-  }, [id, attempt, initialStatus, router]);
+  }, [id, attempt, initialStatus]);
 
   const idx = stageIndex(state.status);
   const pct =
-    PROGRESS[state.status] ??
-    (state.status === "GENERATING" && state.step ? (STEP_PROGRESS[state.step] ?? 60) : 15);
+    state.status === "GENERATING" && state.step
+      ? (STEP_PROGRESS[state.step] ?? PROGRESS.GENERATING)
+      : (PROGRESS[state.status] ?? 15);
 
   return (
     <div className="mx-auto max-w-lg space-y-5">

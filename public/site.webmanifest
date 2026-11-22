@@ -1,0 +1,16 @@
+{
+  "name": "CamesAcademic — Cames Academic",
+  "short_name": "CamesAcademic",
+  "description": "Platform belajar AI dari Cames — ubah materi jadi ringkasan cerdas, flashcard, kuis adaptif, dan tutor AI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fc",
+  "theme_color": "#1650b6",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

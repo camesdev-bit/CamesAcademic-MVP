@@ -86,6 +86,13 @@ export default function UploadForm() {
         setError(data.error || "Gagal mengupload materi");
         return;
       }
+      if (data.seed) {
+        try {
+          window.sessionStorage.setItem(`cames_mat_seed_${data.id}`, JSON.stringify(data.seed));
+        } catch {
+          // Ignore storage quota errors
+        }
+      }
       router.push(`/materi/${data.id}/proses`);
     } catch {
       setError("Koneksi gagal. Coba lagi.");
